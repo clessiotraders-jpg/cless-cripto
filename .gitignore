@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+dist/
+build/
+*.log
+*.pid
+.DS_Store
+.vscode/
+.idea/
+firebase-key.json
+yarn.lock
+package-lock.json
