@@ -10,6 +10,7 @@ const initialize = async () => {
 
   await bot.telegram.deleteWebhook().catch(() => {});
 
+  // ---------------- START ----------------
   bot.start(async (ctx) => {
     try {
       const userId = ctx.from.id.toString();
@@ -34,6 +35,7 @@ const initialize = async () => {
     }
   });
 
+  // ---------------- MARKET ----------------
   bot.action('market', async (ctx) => {
     await ctx.reply('📊 Escolha um ativo:', {
       reply_markup: {
@@ -47,6 +49,7 @@ const initialize = async () => {
     });
   });
 
+  // ---------------- PRICE ----------------
   bot.action(/^price_(.+)$/, async (ctx) => {
     try {
       const symbol = ctx.match[1];
@@ -63,6 +66,7 @@ const initialize = async () => {
     }
   });
 
+  // ---------------- ACCOUNT ----------------
   bot.action('account', async (ctx) => {
     const user = await firebaseService.getUser(
       ctx.from.id.toString()
@@ -76,6 +80,7 @@ const initialize = async () => {
     );
   });
 
+  // ---------------- AFFILIATE ----------------
   bot.action('affiliate', async (ctx) => {
     const userId = ctx.from.id.toString();
     const user = await firebaseService.getUser(userId);
@@ -93,6 +98,7 @@ const initialize = async () => {
     );
   });
 
+  // ---------------- LEARN ----------------
   bot.action('learn', async (ctx) => {
     await ctx.reply(
       `📚 Aprenda\n\n` +
@@ -103,23 +109,46 @@ const initialize = async () => {
     );
   });
 
+  // ---------------- MENU ----------------
   bot.action('menu', async (ctx) => {
     await showMainMenu(ctx);
   });
 
+  // ---------------- MESSAGE HANDLER (CÉREBRO LIMPO) ----------------
   bot.on('message', async (ctx) => {
-    const text = ctx.message.text;
+    const text = ctx.message?.text;
     const userId = ctx.from.id.toString();
 
-    if (securityService.isDuplicateMessage(userId, text)) {
-      return ctx.reply('⚠️ Mensagem duplicada.');
+    if (!text) return;
+
+    try {
+      // salva histórico
+      await firebaseService.saveMessage(userId, text);
+
+      // 🔥 DETECTA DUPLICADO
+      const isDuplicate = securityService.isDuplicateMessage(userId, text);
+
+      if (isDuplicate) {
+        // 🧹 apaga no grupo sem aviso
+        if (ctx.chat.type !== 'private') {
+          try {
+            await ctx.deleteMessage();
+          } catch (err) {
+            console.log('Não consegui apagar mensagem:', err.message);
+          }
+        }
+        return;
+      }
+
+      // 🤖 FUTURO: IA entra aqui
+      // const reply = await askAI(text, userId)
+      // return ctx.reply(reply)
+
+      return;
+
+    } catch (err) {
+      console.error('Message handler error:', err);
     }
-
-    await firebaseService.saveMessage(userId, text);
-
-    ctx.reply(
-      'Digite /start para abrir o menu principal.'
-    );
   });
 
   bot.catch((err) => {
@@ -133,6 +162,7 @@ const initialize = async () => {
   console.log('✅ Telegram bot initialized');
 };
 
+// ---------------- MAIN MENU ----------------
 async function showMainMenu(ctx) {
   await ctx.reply(
     '🚀 Cless Cripto\n\nEscolha uma opção:',
@@ -149,6 +179,7 @@ async function showMainMenu(ctx) {
   );
 }
 
+// ---------------- AFFILIATE CODE ----------------
 function generateAffiliateCode() {
   return (
     'STN' +
