@@ -2,8 +2,47 @@ const { Telegraf } = require('telegraf');
 const firebaseService = require('./firebase');
 const binanceService = require('./binance');
 const securityService = require('./security');
+const OpenAI = require('openai');
 
 let bot;
+
+// 🤖 OPENAI INIT
+const ai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+// 🧠 IA CORE
+async function askAI(text, userId) {
+  try {
+    const response = await ai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `
+És um assistente inteligente de trading cripto dentro de um bot Telegram.
+
+Regras:
+- Responde de forma natural e humana
+- Não digas para usar comandos tipo /start
+- Ajuda em trading, cripto, mercado e educação financeira
+- Respostas curtas e diretas
+`
+        },
+        {
+          role: "user",
+          content: text
+        }
+      ]
+    });
+
+    return response.choices[0].message.content;
+
+  } catch (err) {
+    console.error("AI error:", err);
+    return "❌ IA indisponível no momento.";
+  }
+}
 
 const initialize = async () => {
   bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
@@ -29,6 +68,7 @@ const initialize = async () => {
       }
 
       await showMainMenu(ctx);
+
     } catch (err) {
       console.error(err);
       ctx.reply('❌ Erro ao iniciar.');
@@ -68,9 +108,7 @@ const initialize = async () => {
 
   // ---------------- ACCOUNT ----------------
   bot.action('account', async (ctx) => {
-    const user = await firebaseService.getUser(
-      ctx.from.id.toString()
-    );
+    const user = await firebaseService.getUser(ctx.from.id.toString());
 
     await ctx.reply(
       `💼 Minha Conta\n\n` +
@@ -114,7 +152,7 @@ const initialize = async () => {
     await showMainMenu(ctx);
   });
 
-  // ---------------- MESSAGE HANDLER (CÉREBRO LIMPO) ----------------
+  // ---------------- MESSAGE HANDLER (IA + ANTI-SPAM) ----------------
   bot.on('message', async (ctx) => {
     const text = ctx.message?.text;
     const userId = ctx.from.id.toString();
@@ -125,29 +163,25 @@ const initialize = async () => {
       // salva histórico
       await firebaseService.saveMessage(userId, text);
 
-      // 🔥 DETECTA DUPLICADO
+      // 🔥 anti-duplicado silencioso
       const isDuplicate = securityService.isDuplicateMessage(userId, text);
 
       if (isDuplicate) {
-        // 🧹 apaga no grupo sem aviso
         if (ctx.chat.type !== 'private') {
           try {
             await ctx.deleteMessage();
-          } catch (err) {
-            console.log('Não consegui apagar mensagem:', err.message);
-          }
+          } catch (err) {}
         }
         return;
       }
 
-      // 🤖 FUTURO: IA entra aqui
-      // const reply = await askAI(text, userId)
-      // return ctx.reply(reply)
+      // 🤖 IA RESPONDE TUDO
+      const reply = await askAI(text, userId);
 
-      return;
+      await ctx.reply(reply);
 
     } catch (err) {
-      console.error('Message handler error:', err);
+      console.error('Message error:', err);
     }
   });
 
@@ -159,10 +193,10 @@ const initialize = async () => {
     dropPendingUpdates: true
   });
 
-  console.log('✅ Telegram bot initialized');
+  console.log('✅ Telegram bot initialized with AI');
 };
 
-// ---------------- MAIN MENU ----------------
+// ---------------- MENU ----------------
 async function showMainMenu(ctx) {
   await ctx.reply(
     '🚀 Cless Cripto\n\nEscolha uma opção:',
