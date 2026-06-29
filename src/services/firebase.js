@@ -1,1 +1,136 @@
-const admin = require('firebase-admin');\n\nlet db = null;\n\nconst initialize = async () => {\n  // Validar variáveis de ambiente necessárias\n  if (!process.env.FIREBASE_PROJECT_ID) {\n    throw new Error('FIREBASE_PROJECT_ID não definido nas variáveis de ambiente');\n  }\n  if (!process.env.FIREBASE_PRIVATE_KEY) {\n    throw new Error('FIREBASE_PRIVATE_KEY não definido nas variáveis de ambiente');\n  }\n  if (!process.env.FIREBASE_CLIENT_EMAIL) {\n    throw new Error('FIREBASE_CLIENT_EMAIL não definido nas variáveis de ambiente');\n  }\n\n  if (!admin.apps.length) {\n    admin.initializeApp({\n      credential: admin.credential.cert({\n        projectId: process.env.FIREBASE_PROJECT_ID,\n        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\\\n/g, '\\n'),\n        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,\n      }),\n      databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`,\n    });\n    console.log('✅ Firebase inicializado com sucesso');\n  }\n  db = admin.database();\n  return db;\n};\n\nconst getUser = async (userId) => {\n  const snapshot = await db.ref(`users/${userId}`).once('value');\n  return snapshot.val();\n};\n\nconst createUser = async (userId, userData) => {\n  await db.ref(`users/${userId}`).set({\n    ...userData,\n    createdAt: new Date().toISOString(),\n    updatedAt: new Date().toISOString(),\n  });\n};\n\nconst updateUser = async (userId, userData) => {\n  await db.ref(`users/${userId}`).update({\n    ...userData,\n    updatedAt: new Date().toISOString(),\n  });\n};\n\nconst saveMessage = async (userId, message) => {\n  const messageId = db.ref('messages').push().key;\n  await db.ref(`messages/${messageId}`).set({\n    userId,\n    content: message,\n    timestamp: new Date().toISOString(),\n  });\n  return messageId;\n};\n\nconst deleteMessage = async (messageId) => {\n  await db.ref(`messages/${messageId}`).remove();\n};\n\nconst saveSignal = async (signal) => {\n  const signalId = db.ref('signals').push().key;\n  await db.ref(`signals/${signalId}`).set({\n    ...signal,\n    createdAt: new Date().toISOString(),\n  });\n  return signalId;\n};\n\nconst saveLog = async (logData) => {\n  const logId = db.ref('logs').push().key;\n  await db.ref(`logs/${logId}`).set({\n    ...logData,\n    timestamp: new Date().toISOString(),\n  });\n  return logId;\n};\n\nconst saveMetric = async (metric) => {\n  const metricId = db.ref('metrics').push().key;\n  await db.ref(`metrics/${metricId}`).set({\n    ...metric,\n    timestamp: new Date().toISOString(),\n  });\n  return metricId;\n};\n\nconst saveAffiliateRelationship = async (referrerId, referredId) => {\n  await db.ref(`affiliates/${referrerId}/referred/${referredId}`).set({\n    userId: referredId,\n    addedAt: new Date().toISOString(),\n  });\n};\n\nconst getAffiliateStats = async (userId) => {\n  const snapshot = await db.ref(`affiliates/${userId}`).once('value');\n  return snapshot.val() || {};\n};\n\nconst getUserPreferences = async (userId) => {\n  const snapshot = await db.ref(`preferences/${userId}`).once('value');\n  return snapshot.val() || {};\n};\n\nconst saveUserPreferences = async (userId, preferences) => {\n  await db.ref(`preferences/${userId}`).update(preferences);\n};\n\nconst trackUserProgress = async (userId, progress) => {\n  await db.ref(`progress/${userId}`).update({\n    ...progress,\n    updatedAt: new Date().toISOString(),\n  });\n};\n\nmodule.exports = {\n  initialize,\n  getUser,\n  createUser,\n  updateUser,\n  saveMessage,\n  deleteMessage,\n  saveSignal,\n  saveLog,\n  saveMetric,\n  saveAffiliateRelationship,\n  getAffiliateStats,\n  getUserPreferences,\n  saveUserPreferences,\n  trackUserProgress,\n};\n
+const admin = require('firebase-admin');
+
+let db = null;
+
+const initialize = async () => {
+  // Validar variáveis de ambiente necessárias
+  if (!process.env.FIREBASE_PROJECT_ID) {
+    throw new Error('FIREBASE_PROJECT_ID não definido nas variáveis de ambiente');
+  }
+  if (!process.env.FIREBASE_PRIVATE_KEY) {
+    throw new Error('FIREBASE_PRIVATE_KEY não definido nas variáveis de ambiente');
+  }
+  if (!process.env.FIREBASE_CLIENT_EMAIL) {
+    throw new Error('FIREBASE_CLIENT_EMAIL não definido nas variáveis de ambiente');
+  }
+
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      }),
+      databaseURL: `https://${process.env.FIREBASE_PROJECT_ID}.firebaseio.com`,
+    });
+    console.log('✅ Firebase inicializado com sucesso');
+  }
+  db = admin.database();
+  return db;
+};
+
+const getUser = async (userId) => {
+  const snapshot = await db.ref(`users/${userId}`).once('value');
+  return snapshot.val();
+};
+
+const createUser = async (userId, userData) => {
+  await db.ref(`users/${userId}`).set({
+    ...userData,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+};
+
+const updateUser = async (userId, userData) => {
+  await db.ref(`users/${userId}`).update({
+    ...userData,
+    updatedAt: new Date().toISOString(),
+  });
+};
+
+const saveMessage = async (userId, message) => {
+  const messageId = db.ref('messages').push().key;
+  await db.ref(`messages/${messageId}`).set({
+    userId,
+    content: message,
+    timestamp: new Date().toISOString(),
+  });
+  return messageId;
+};
+
+const deleteMessage = async (messageId) => {
+  await db.ref(`messages/${messageId}`).remove();
+};
+
+const saveSignal = async (signal) => {
+  const signalId = db.ref('signals').push().key;
+  await db.ref(`signals/${signalId}`).set({
+    ...signal,
+    createdAt: new Date().toISOString(),
+  });
+  return signalId;
+};
+
+const saveLog = async (logData) => {
+  const logId = db.ref('logs').push().key;
+  await db.ref(`logs/${logId}`).set({
+    ...logData,
+    timestamp: new Date().toISOString(),
+  });
+  return logId;
+};
+
+const saveMetric = async (metric) => {
+  const metricId = db.ref('metrics').push().key;
+  await db.ref(`metrics/${metricId}`).set({
+    ...metric,
+    timestamp: new Date().toISOString(),
+  });
+  return metricId;
+};
+
+const saveAffiliateRelationship = async (referrerId, referredId) => {
+  await db.ref(`affiliates/${referrerId}/referred/${referredId}`).set({
+    userId: referredId,
+    addedAt: new Date().toISOString(),
+  });
+};
+
+const getAffiliateStats = async (userId) => {
+  const snapshot = await db.ref(`affiliates/${userId}`).once('value');
+  return snapshot.val() || {};
+};
+
+const getUserPreferences = async (userId) => {
+  const snapshot = await db.ref(`preferences/${userId}`).once('value');
+  return snapshot.val() || {};
+};
+
+const saveUserPreferences = async (userId, preferences) => {
+  await db.ref(`preferences/${userId}`).update(preferences);
+};
+
+const trackUserProgress = async (userId, progress) => {
+  await db.ref(`progress/${userId}`).update({
+    ...progress,
+    updatedAt: new Date().toISOString(),
+  });
+};
+
+module.exports = {
+  initialize,
+  getUser,
+  createUser,
+  updateUser,
+  saveMessage,
+  deleteMessage,
+  saveSignal,
+  saveLog,
+  saveMetric,
+  saveAffiliateRelationship,
+  getAffiliateStats,
+  getUserPreferences,
+  saveUserPreferences,
+  trackUserProgress,
+};
