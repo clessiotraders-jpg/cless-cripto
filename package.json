@@ -20,7 +20,8 @@
     "express-rate-limit": "^6.7.0",
     "cors": "^2.8.5",
     "joi": "^17.9.2",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "openai": "^4.0.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22",
